@@ -1268,8 +1268,8 @@ class Game {
     });
   }
   _resize() {
-    const dpr = window.devicePixelRatio || 1;
     const ww = window.innerWidth, wh = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
 
     // Set display size
     this.canvas.style.width = ww + 'px';
@@ -1278,7 +1278,6 @@ class Game {
     // Set actual resolution
     this.canvas.width = ww * dpr;
     this.canvas.height = wh * dpr;
-    this.ctx.scale(dpr, dpr);
 
     // Calculate internal scaling to fit 720x1280 view
     const scaleW = ww / 720;
@@ -1355,16 +1354,20 @@ class Game {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    const vW = this.canvas.width / (this.scale * (window.devicePixelRatio || 1));
-    const vH = this.canvas.height / (this.scale * (window.devicePixelRatio || 1));
+    const dpr = window.devicePixelRatio || 1;
+    const vW = window.innerWidth / this.scale;
+    const vH = window.innerHeight / this.scale;
 
     ctx.save();
-    // Center the content if the screen is wider/taller than 720x1280
-    const offsetX = (window.innerWidth - (720 * this.scale)) / 2 / this.scale;
-    const offsetY = (window.innerHeight - (1280 * this.scale)) / 2 / this.scale;
+    // Apply total scale (Game Scale * DPR)
+    ctx.scale(this.scale * dpr, this.scale * dpr);
 
-    ctx.scale(this.scale, this.scale);
-    if (this.scene === 'menu') ctx.translate(offsetX, offsetY);
+    // Center the content for Menu
+    if (this.scene === 'menu') {
+      const offsetX = (window.innerWidth - (720 * this.scale)) / 2 / this.scale;
+      const offsetY = (window.innerHeight - (1280 * this.scale)) / 2 / this.scale;
+      ctx.translate(offsetX, offsetY);
+    }
 
     if (this.scene === 'loading') {
       this.loadScene.draw(ctx, this.am.progress, vW, vH);
@@ -1395,7 +1398,9 @@ class Game {
     if (!this.bike) return;
     this.elapsed += 1 / 60;
     this.bike.update(this.input);
-    this.cam.follow(this.bike.pos.x, this.bike.pos.y, this.canvas.width, this.canvas.height, this.scale);
+    const vW = window.innerWidth / this.scale;
+    const vH = window.innerHeight / this.scale;
+    this.cam.follow(this.bike.pos.x, this.bike.pos.y, vW, vH, 1);
     // Dust
     if (this.input.fwd && this.bike.speed > 1) {
       if (this.dustT-- <= 0) {
@@ -1425,8 +1430,8 @@ class Game {
   }
   _drawGame(ctx, vW, vH) {
     if (!this.env || !this.terrain || !this.bike) return;
-    this.env.drawBG(ctx, this.cam, this.canvas.width, this.canvas.height, this.scale);
-    this.env.draw(ctx, this.am, this.cam, this.canvas.width, this.canvas.height, this.scale);
+    this.env.drawBG(ctx, this.cam, vW, vH, 1);
+    this.env.draw(ctx, this.am, this.cam, vW, vH, 1);
     ctx.save(); ctx.translate(-this.cam.x, -this.cam.y);
     this.terrain.draw(ctx, this.am);
     this.bike.draw(ctx, this.am);
