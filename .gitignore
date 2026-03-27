@@ -10,3 +10,4 @@ tmp/
 .vscode/
 .idea/
 *.log
+token.txt
