@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <canvas id="c"></canvas>
+    <script>
+        const assets = [
+            { name: 'flat', src: '../senaro avurudu/road/Flat Road.png' },
+            { name: 'up', src: '../senaro avurudu/road/Uphill Ramp.png' },
+            { name: 'down', src: '../senaro avurudu/road/Downhill Ramp.png' },
+            { name: 'bump', src: '../senaro avurudu/road/Rounded Bump.png' }
+        ];
+
+        async function measure() {
+            const results = {};
+            for (const a of assets) {
+                const img = new Image();
+                img.src = a.src;
+                await new Promise(r => img.onload = r);
+                const canvas = document.getElementById('c');
+                canvas.width = img.width; canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+
+                const findY = (x) => {
+                    const data = ctx.getImageData(x, 0, 1, img.height).data;
+                    for (let y = 0; y < img.height; y++) {
+                        const r = data[y * 4], g = data[y * 4 + 1], b = data[y * 4 + 2], a = data[y * 4 + 3];
+                        // Look for the dark road surface (avg < 100 and alpha > 200)
+                        if (a > 200 && (r + g + b) / 3 < 100) return y;
+                    }
+                    return -1;
+                };
+
+                results[a.name] = { sY: findY(0), eY: findY(img.width - 1), w: img.width, h: img.height };
+            }
+            const div = document.createElement('div');
+            div.id = 'results';
+            div.innerText = JSON.stringify(results);
+            document.body.appendChild(div);
+        }
+        measure();
+    </script>
+</body>
+
+</html>

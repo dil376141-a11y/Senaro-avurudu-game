@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environment Designer Alpha – Senaro Avurudu Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --sidebar-bg: #1e293b;
+            --accent: #fbbf24;
+            --accent-glow: rgba(251, 191, 36, 0.4);
+            --text: #f8fafc;
+            --panel: #334155;
+            --border: #475569;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar --- */
+        #sidebar {
+            width: 320px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 900;
+            margin: 0;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+
+        .asset-group {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+            margin-top: 10px;
+        }
+
+        .asset-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: 0.2s;
+        }
+
+        .asset-card:hover {
+            border-color: var(--accent);
+            transform: scale(1.02);
+        }
+
+        .asset-card img {
+            max-width: 100%;
+            height: 80px;
+            object-fit: contain;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .asset-card span {
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        /* --- Workspace --- */
+        #workspace-container {
+            flex: 1;
+            position: relative;
+            overflow: auto;
+            background-color: #020617;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100px 100px;
+        }
+
+        #canvas {
+            position: absolute;
+            min-width: 15000px;
+            min-height: 4000px;
+            top: 0;
+            left: 0;
+        }
+
+        /* Layering */
+        #props-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 5;
+        }
+
+        #road-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        #bike-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        .road-block {
+            position: absolute;
+        }
+
+        .prop-item {
+            position: absolute;
+            cursor: move;
+            border: 2px solid transparent;
+            transform-origin: top left;
+        }
+
+        .prop-item:hover {
+            border-color: rgba(251, 191, 36, 0.5);
+        }
+
+        .prop-item.selected {
+            border-color: var(--accent);
+            z-index: 500 !important;
+        }
+
+        .prop-item img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .prop-item.flipped img {
+            transform: scaleX(-1);
+        }
+
+        /* --- Scaling Handles --- */
+        .handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border: 2px solid var(--accent);
+            border-radius: 2px;
+            display: none;
+            z-index: 600;
+            cursor: nwse-resize;
+        }
+
+        .prop-item.selected .handle {
+            display: block;
+        }
+
+        .handle.br {
+            bottom: -6px;
+            right: -6px;
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: #1e293b;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 30px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn.secondary {
+            background: var(--panel);
+            color: white;
+        }
+
+        .btn.toggle {
+            background: #475569;
+            padding: 8px 12px;
+        }
+
+        .btn.toggle.active {
+            background: #22c55e;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        #export-panel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 700px;
+            background: var(--sidebar-bg);
+            border: 2px solid var(--accent);
+            border-radius: 20px;
+            padding: 25px;
+            z-index: 2000;
+            box-shadow: 0 0 100px rgba(0, 0, 0, 0.9);
+        }
+
+        #exportText {
+            width: 100%;
+            height: 350px;
+            background: #0f172a;
+            color: #22c55e;
+            font-family: monospace;
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid var(--border);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            cursor: pointer;
+            font-size: 24px;
+        }
+
+        /* Properties Panel */
+        #prop-props {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+        }
+
+        .prop-input {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .prop-input input {
+            width: 65px;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            color: white;
+            padding: 6px;
+            border-radius: 4px;
+        }
+
+        .prop-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <h1>Env Designer</h1>
+        <p class="subtitle">Manual Prop Placement</p>
+
+        <div class="asset-group" id="assetList">
+            <!-- Asset cards will be injected here -->
+        </div>
+
+        <div id="prop-props" style="display:none;">
+            <h3>Prop Properties</h3>
+            <div class="prop-input">
+                <span>Scale:</span>
+                <input type="number" id="inpScale" step="0.1" value="1.0" oninput="updateSelectedProp()">
+            </div>
+            <div class="prop-input">
+                <span>Z-Index:</span>
+                <input type="number" id="inpZ" step="1" value="5" oninput="updateSelectedProp()">
+            </div>
+            <div class="prop-input">
+                <span>Reflect:</span>
+                <button id="btnFlip" class="btn toggle" onclick="toggleFlip()">Horizontal Flip</button>
+            </div>
+            <div class="prop-actions">
+                <button class="btn secondary" onclick="deleteSelectedProp()" style="background:#ef4444">Remove</button>
+                <button class="btn secondary" onclick="duplicateProp()">Clone</button>
+            </div>
+        </div>
+
+        <div
+            style="margin-top:auto; font-size: 0.8rem; color: #64748b; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+            <p style="margin:2px 0">• Drag assets to workspace</p>
+            <p style="margin:2px 0">• Scroll / Mouse drag to pan</p>
+            <p style="margin:2px 0">• Road is locked as reference</p>
+        </div>
+    </div>
+
+    <div id="workspace-container" id="workspace">
+        <div id="canvas">
+            <div id="props-layer"></div>
+            <div id="road-layer"></div>
+            <div id="bike-layer"></div>
+        </div>
+    </div>
+
+    <div id="controls">
+        <button class="btn secondary" onclick="clearAll()">Clear All</button>
+        <button class="btn" onclick="openExport()">Export Props JSON 📋</button>
+    </div>
+
+    <div id="export-panel">
+        <span class="close-btn" onclick="closeExport()">&times;</span>
+        <h2>Export Environment Configuration</h2>
+        <p style="font-size: 0.9rem; color: #94a3b8;">Copy this PROPS_DATA and paste it into game.js</p>
+        <textarea id="exportText" readonly></textarea>
+        <button class="btn" style="width:100%" onclick="copyExport()">Copy to Clipboard</button>
+    </div>
+
+    <script>
+        const ASSETS_BASE = '../senaro avurudu/';
+        const BLOCK_SCALE = 0.45;
+
+        const DECOR_ASSETS = [
+            { asset: 'TREE (1).png', label: 'Tree 1' },
+            { asset: 'TREE (2).png', label: 'Tree 2' },
+            { asset: 'TREE (3).png', label: 'Tree 3' },
+            { asset: 'cave with trees.png', label: 'Cave' },
+            { asset: 'city.png', label: 'City BG' },
+            { asset: 'hotel.png', label: 'Hotel' },
+            { asset: 'house 3.png', label: 'House' },
+            { asset: 'lotus tw.png', label: 'Lotus Tower' },
+            { asset: 'senaro building.png', label: 'Senaro Building' },
+            { asset: 'temple.png', label: 'Temple' },
+            { asset: 'sun- inner.png', label: 'Sun Inner' },
+            { asset: 'sun-outer .png', label: 'Sun Outer' },
+            { asset: 'Fence.png', label: 'Fence' },
+            { asset: 'color light.png', label: 'Color Light' },
+            { asset: 'gas sation.png', label: 'Gas Station' },
+            { asset: 'green hill.png', label: 'Green Hill' },
+            { asset: 'hill 2.png', label: 'Hill 2' },
+            { asset: 'hill.png', label: 'Hill 1' },
+            { asset: 'kandy.png', label: 'Kandy' },
+            { asset: 'sigiriya.png', label: 'Sigiriya' },
+            { asset: 'tree w (1).png', label: 'Tree W1' },
+            { asset: 'tree w (2).png', label: 'Tree W2' },
+            { asset: 'water fall 2.png', label: 'Waterfall 2' },
+            { asset: 'water fall.png', label: 'Waterfall 1' }
+        ];
+
+        const TRACK_DATA = [
+            { "type": "down", "x": 606, "y": 732 },
+            { "type": "flat", "x": 1400, "y": 800 },
+            { "type": "up", "x": 2170, "y": 730 },
+            { "type": "bump", "x": 2936, "y": 682 },
+            { "type": "down", "x": 3654, "y": 728 },
+            { "type": "up", "x": 4366, "y": 729 },
+            { "type": "flat", "x": 5123, "y": 721 },
+            { "type": "up", "x": 5907, "y": 650 },
+            { "type": "bump", "x": 6662, "y": 603 },
+            { "type": "up", "x": 7388, "y": 572 },
+            { "type": "flat", "x": 8116, "y": 564 }
+        ];
+
+        const BLOCK_DEFS = {
+            flat: { asset: 'road/Flat Road.png', w: 1837, h: 234 },
+            up: { asset: 'road/Uphill Ramp.png', w: 1775, h: 379 },
+            down: { asset: 'road/Downhill Ramp.png', w: 1778, h: 375 },
+            bump: { asset: 'road/Rounded Bump.png', w: 1704, h: 309 }
+        };
+
+        const bikeLayer = document.getElementById('bike-layer');
+        const roadLayer = document.getElementById('road-layer');
+        const propsLayer = document.getElementById('props-layer');
+        const workspace = document.getElementById('workspace-container');
+        const canvas = document.getElementById('canvas');
+        const assetList = document.getElementById('assetList');
+
+        let placedProps = [];
+        let selectedProp = null;
+        let draggingProp = null;
+        let resizingProp = null;
+        let dragOffX = 0, dragOffY = 0;
+        let isPanning = false, panStartX, panStartY, scLeft, scTop;
+
+        window.onload = () => {
+            // Setup Sidebar Assets
+            DECOR_ASSETS.forEach(d => {
+                const card = document.createElement('div');
+                card.className = 'asset-card';
+                card.draggable = true;
+                card.onclick = () => {
+                    const spawnX = workspace.scrollLeft + workspace.clientWidth / 2;
+                    addProp(d.asset, spawnX, 700);
+                };
+                card.ondragstart = (e) => e.dataTransfer.setData('asset', d.asset);
+                card.innerHTML = `<img src="${ASSETS_BASE + d.asset}"><span>${d.label}</span>`;
+                assetList.appendChild(card);
+            });
+
+            // Load Road Reference
+            TRACK_DATA.forEach(b => {
+                const d = BLOCK_DEFS[b.type];
+                const el = document.createElement('div');
+                el.className = 'road-block';
+                el.style.width = (d.w * BLOCK_SCALE) + 'px';
+                el.style.height = (d.h * BLOCK_SCALE) + 'px';
+                el.style.left = b.x + 'px';
+                el.style.top = b.y + 'px';
+                el.innerHTML = `<img src="${ASSETS_BASE + d.asset}" style="width:100%; height:100%">`;
+                roadLayer.appendChild(el);
+            });
+
+            // Load Bike Reference
+            const bikeEl = document.createElement('div');
+            bikeEl.style.position = 'absolute';
+            bikeEl.style.left = '700px';
+            bikeEl.style.top = '720px'; // Approx context
+            bikeEl.style.width = '300px';
+            bikeEl.innerHTML = `
+                <img src="${ASSETS_BASE}bike/chassis.png" style="width:190px; position:absolute; left:50px; top:0;">
+                <img src="${ASSETS_BASE}RIDER.png" style="width:100px; position:absolute; left:90px; top:-60px;">
+                <img src="${ASSETS_BASE}bike/wheel.png" style="width:72px; position:absolute; left:0; top:40px;">
+                <img src="${ASSETS_BASE}bike/wheel.png" style="width:72px; position:absolute; left:136px; top:40px;">
+            `;
+            bikeLayer.appendChild(bikeEl);
+
+            workspace.scrollLeft = 0;
+            workspace.scrollTop = 500;
+        };
+
+        // Workspace Events
+        workspace.ondragover = (e) => e.preventDefault();
+        workspace.ondrop = (e) => {
+            const asset = e.dataTransfer.getData('asset');
+            if (asset) {
+                const r = canvas.getBoundingClientRect();
+                addProp(asset, e.clientX - r.left, e.clientY - r.top);
+            }
+        };
+
+        workspace.onmousedown = (e) => {
+            if (e.button === 0 && (e.target === workspace || e.target === canvas || e.target === propsLayer)) {
+                isPanning = true;
+                panStartX = e.clientX; panStartY = e.clientY;
+                scLeft = workspace.scrollLeft; scTop = workspace.scrollTop;
+                selectProp(null);
+            }
+        };
+
+        window.addEventListener('mousemove', (e) => {
+            if (draggingProp) {
+                draggingProp.x = e.clientX - dragOffX;
+                draggingProp.y = e.clientY - dragOffY;
+                renderProp(draggingProp);
+            } else if (resizingProp) {
+                const r = resizingProp.el.getBoundingClientRect();
+                const deltaX = (e.clientX - r.left) / resizingProp.scale;
+                const newWidth = deltaX * resizingProp.scale;
+                // Simple proportional scale based on width delta
+                const ratio = e.clientX - r.left;
+                if (ratio > 20) {
+                    resizingProp.scale = (e.clientX - r.left) / resizingProp.baseW;
+                    renderProp(resizingProp);
+                    document.getElementById('inpScale').value = resizingProp.scale.toFixed(2);
+                }
+            } else if (isPanning) {
+                workspace.scrollLeft = scLeft - (e.clientX - panStartX);
+                workspace.scrollTop = scTop - (e.clientY - panStartY);
+            }
+        });
+
+        window.addEventListener('mouseup', () => { draggingProp = null; resizingProp = null; isPanning = false; });
+
+        function addProp(asset, x = 1000, y = 700, data = {}) {
+            const id = 'prop_' + Date.now() + Math.random();
+            const el = document.createElement('div');
+            el.className = 'prop-item';
+            el.innerHTML = `
+                <img src="${ASSETS_BASE + asset}" draggable="false">
+                <div class="handle br" onmousedown="startResize(event, '${id}')"></div>
+            `;
+
+            const prop = {
+                id, asset, el,
+                x, y,
+                scale: data.scale || 1.0,
+                z: data.z || 5,
+                flip: data.flip || false,
+                baseW: 100, baseH: 100 // Default, will update on load
+            };
+
+            const img = el.querySelector('img');
+            img.onload = () => {
+                prop.baseW = img.naturalWidth;
+                prop.baseH = img.naturalHeight;
+                renderProp(prop);
+            };
+
+            placedProps.push(prop);
+            propsLayer.appendChild(el);
+
+            el.onmousedown = (e) => {
+                if (e.button !== 0 || e.target.classList.contains('handle')) return;
+                selectProp(prop);
+                draggingProp = prop;
+                dragOffX = e.clientX - prop.x;
+                dragOffY = e.clientY - prop.y;
+                e.stopPropagation();
+            };
+            selectProp(prop);
+            renderProp(prop);
+            return prop;
+        }
+
+        function startResize(e, id) {
+            e.stopPropagation();
+            resizingProp = placedProps.find(p => p.id === id);
+        }
+
+        function renderProp(p) {
+            p.el.style.left = p.x + 'px';
+            p.el.style.top = p.y + 'px';
+            p.el.style.width = (p.baseW * p.scale) + 'px';
+            p.el.style.height = (p.baseH * p.scale) + 'px';
+            p.el.style.zIndex = p.z;
+            if (p.flip) p.el.classList.add('flipped');
+            else p.el.classList.remove('flipped');
+        }
+
+        function selectProp(p) {
+            if (selectedProp) selectedProp.el.classList.remove('selected');
+            selectedProp = p;
+            const panel = document.getElementById('prop-props');
+            if (p) {
+                p.el.classList.add('selected');
+                panel.style.display = 'block';
+                document.getElementById('inpScale').value = p.scale.toFixed(2);
+                document.getElementById('inpZ').value = p.z;
+                document.getElementById('btnFlip').classList.toggle('active', p.flip);
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function updateSelectedProp() {
+            if (!selectedProp) return;
+            selectedProp.scale = parseFloat(document.getElementById('inpScale').value) || 0.1;
+            selectedProp.z = parseInt(document.getElementById('inpZ').value) || 0;
+            renderProp(selectedProp);
+        }
+
+        function toggleFlip() {
+            if (!selectedProp) return;
+            selectedProp.flip = !selectedProp.flip;
+            document.getElementById('btnFlip').classList.toggle('active', selectedProp.flip);
+            renderProp(selectedProp);
+        }
+
+        function duplicateProp() {
+            if (!selectedProp) return;
+            addProp(selectedProp.asset, selectedProp.x + 50, selectedProp.y + 50, {
+                scale: selectedProp.scale,
+                z: selectedProp.z,
+                flip: selectedProp.flip
+            });
+        }
+
+        function deleteSelectedProp() {
+            if (!selectedProp) return;
+            selectedProp.el.remove();
+            placedProps = placedProps.filter(p => p.id !== selectedProp.id);
+            selectProp(null);
+        }
+
+        function clearAll() { if (confirm('Clear all props?')) { placedProps.forEach(p => p.el.remove()); placedProps = []; selectProp(null); } }
+
+        function openExport() {
+            const data = placedProps.map(p => ({
+                asset: p.asset,
+                x: Math.round(p.x),
+                y: Math.round(p.y),
+                scale: parseFloat(p.scale.toFixed(3)),
+                z: p.z,
+                flip: p.flip
+            }));
+            document.getElementById('exportText').value = JSON.stringify(data, null, 2);
+            document.getElementById('export-panel').style.display = 'block';
+        }
+
+        function closeExport() { document.getElementById('export-panel').style.display = 'none'; }
+        function copyExport() { document.getElementById('exportText').select(); document.execCommand('copy'); alert('Copied to clipboard!'); }
+    </script>
+</body>
+
+</html>

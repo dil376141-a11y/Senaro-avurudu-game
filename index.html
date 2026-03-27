@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Senaro GN Ride – Avurudu Challenge</title>
+  <meta name="description" content="A festive Sinhala New Year motorcycle racing game through Sri Lankan village terrain to the Senaro building.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Mobile Touch Controls -->
+  <div id="touchControls">
+    <button id="btnLeft" class="touchBtn" aria-label="Brake / Reverse">◀</button>
+    <button id="btnRight" class="touchBtn" aria-label="Accelerate">▶</button>
+  </div>
+  <div id="tiltControls">
+    <button id="btnUp"   class="tiltBtn" aria-label="Lean Back">↑</button>
+    <button id="btnDown" class="tiltBtn" aria-label="Lean Forward">↓</button>
+  </div>
+
+  <!-- Matter.js physics -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <!-- Game -->
+  <script src="js/game.js"></script>
+</body>
+</html>

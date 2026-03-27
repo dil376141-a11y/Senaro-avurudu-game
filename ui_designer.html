@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home UI Designer – Senaro Avurudu Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --sidebar: #1e293b;
+            --accent: #fbbf24;
+            --text: #f8fafc;
+        }
+
+        body {
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 300px;
+            background: var(--sidebar);
+            border-right: 1px solid #334155;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .asset-card {
+            background: #334155;
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: 0.2s;
+        }
+
+        .asset-card:hover {
+            border: 2px solid var(--accent);
+        }
+
+        .asset-card img {
+            max-width: 100%;
+            max-height: 80px;
+            pointer-events: none;
+        }
+
+        #canvas-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            background: #020617;
+            position: relative;
+        }
+
+        #canvas {
+            width: 720px;
+            height: 1280px;
+            background: #fff;
+            position: relative;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            transform: scale(0.6);
+            transform-origin: center center;
+        }
+
+        #canvas::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 50%, #fff, #f0f0f0);
+            pointer-events: none;
+        }
+
+        .ui-item {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+        }
+
+        .ui-item.selected {
+            outline: 2px solid var(--accent);
+            z-index: 1000 !important;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: none;
+            background: var(--accent);
+            color: #000;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        #export-panel {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        #export-content {
+            background: var(--sidebar);
+            padding: 30px;
+            border-radius: 20px;
+            width: 600px;
+            text-align: center;
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            margin-top: 20px;
+            font-family: monospace;
+        }
+
+        .prop-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .prop-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            background: #000;
+            color: #fff;
+            border: 1px solid #555;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="sidebar">
+        <h2>UI Assets</h2>
+        <div id="asset-list"></div>
+        <div id="prop-panel" class="prop-panel" style="display:none">
+            <b>Properties</b>
+            <div class="prop-row"><span>X:</span> <input type="number" id="inpX" oninput="updateProp()"></div>
+            <div class="prop-row"><span>Y:</span> <input type="number" id="inpY" oninput="updateProp()"></div>
+            <div class="prop-row"><span>Scale:</span> <input type="number" id="inpS" step="0.1" oninput="updateProp()">
+            </div>
+            <button class="btn" style="background:#f44; width:100%" onclick="deleteProp()">Remove</button>
+        </div>
+    </div>
+    <div id="canvas-area">
+        <div id="canvas"></div>
+    </div>
+    <div class="controls">
+        <button class="btn" onclick="exportData()">Export Layout (JSON)</button>
+    </div>
+    <div id="export-panel">
+        <div id="export-content">
+            <h3>Export Data</h3>
+            <textarea id="exportText" readonly></textarea>
+            <button class="btn" onclick="document.getElementById('export-panel').style.display='none'">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const ASSETS = [
+            { id: 'uiTitle', src: 'assets/home_ui/asset_0002_සුභ-අලුත්-අවුරුද්දක්-වේවා-.png' },
+            { id: 'uiLogo', src: 'assets/home_ui/asset_0000_senaro-logo-.png' },
+            { id: 'uiBike', src: 'assets/home_ui/asset_0001_bike.png' },
+            { id: 'uiPlay', src: 'assets/home_ui/asset_0003_පදින්න-.png' },
+            { id: 'uiHelp', src: 'assets/home_ui/asset_0004_පදින-හැටි.png' },
+            { id: 'uiFooter', src: 'assets/home_ui/asset_0005_bottom.png' },
+            { id: 'uiSun', src: 'assets/home_ui/asset_0010_sun.png' },
+            { id: 'uiCloud1', src: 'assets/home_ui/asset_0006_cloud-1.png' },
+            { id: 'uiCloud2', src: 'assets/home_ui/asset_0007_cloud-2.png' },
+            { id: 'uiCloud3', src: 'assets/home_ui/asset_0008_cloud-3.png' },
+            { id: 'uiGnText', src: 'assets/home_ui/asset_0009_senaro-GN.png' }
+        ];
+
+        let selected = null;
+        let items = [];
+
+        window.onload = () => {
+            const list = document.getElementById('asset-list');
+            ASSETS.forEach(a => {
+                const card = document.createElement('div');
+                card.className = 'asset-card';
+                card.innerHTML = `<img src="${a.src}"><div>${a.id}</div>`;
+                card.onclick = () => addItem(a.id, a.src);
+                list.appendChild(card);
+            });
+        };
+
+        function addItem(id, src) {
+            const el = document.createElement('img');
+            el.src = src;
+            el.className = 'ui-item';
+            el.draggable = false;
+            const item = { id, el, x: 360, y: 300, scale: 0.5 };
+            items.push(item);
+            document.getElementById('canvas').appendChild(el);
+            el.onmousedown = (e) => selectItem(item, e);
+            selectItem(item);
+            updateView(item);
+        }
+
+        function selectItem(item, e) {
+            if (selected) selected.el.classList.remove('selected');
+            selected = item;
+            if (item) {
+                item.el.classList.add('selected');
+                document.getElementById('prop-panel').style.display = 'block';
+                document.getElementById('inpX').value = Math.round(item.x);
+                document.getElementById('inpY').value = Math.round(item.y);
+                document.getElementById('inpS').value = item.scale.toFixed(2);
+
+                if (e) {
+                    const startX = e.clientX, startY = e.clientY;
+                    const startPos = { x: item.x, y: item.y };
+                    const mm = (v) => {
+                        // Account for 0.6 scale of parent canvas
+                        item.x = startPos.x + (v.clientX - startX) / 0.6;
+                        item.y = startPos.y + (v.clientY - startY) / 0.6;
+                        updateView(item);
+                        document.getElementById('inpX').value = Math.round(item.x);
+                        document.getElementById('inpY').value = Math.round(item.y);
+                    };
+                    const mu = () => { window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu); };
+                    window.addEventListener('mousemove', mm);
+                    window.addEventListener('mouseup', mu);
+                }
+            } else {
+                document.getElementById('prop-panel').style.display = 'none';
+            }
+        }
+
+        function updateProp() {
+            if (!selected) return;
+            selected.x = parseFloat(document.getElementById('inpX').value);
+            selected.y = parseFloat(document.getElementById('inpY').value);
+            selected.scale = parseFloat(document.getElementById('inpS').value);
+            updateView(selected);
+        }
+
+        function updateView(item) {
+            item.el.style.left = item.x + 'px';
+            item.el.style.top = item.y + 'px';
+            item.el.style.transform = `translate(-50%, -50%) scale(${item.scale})`;
+        }
+
+        function deleteProp() {
+            if (!selected) return;
+            selected.el.remove();
+            items = items.filter(i => i !== selected);
+            selectItem(null);
+        }
+
+        function exportData() {
+            const data = items.map(i => ({
+                id: i.id,
+                x: Math.round(i.x),
+                y: Math.round(i.y),
+                scale: parseFloat(i.scale.toFixed(3))
+            }));
+            document.getElementById('exportText').value = JSON.stringify(data, null, 2);
+            document.getElementById('export-panel').style.display = 'flex';
+        }
+    </script>
+</body>
+
+</html>

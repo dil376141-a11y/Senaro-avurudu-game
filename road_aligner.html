@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road Aligner Alpha – Senaro Avurudu Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --sidebar-bg: #1e293b;
+            --accent: #fbbf24;
+            --accent-glow: rgba(251, 191, 36, 0.4);
+            --text: #f8fafc;
+            --panel: #334155;
+            --border: #475569;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar --- */
+        #sidebar {
+            width: 320px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
+            z-index: 50;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 900;
+            margin: 0;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: #1e293b;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+            background: #fcd34d;
+        }
+
+        .btn.secondary {
+            background: var(--panel);
+            color: white;
+        }
+
+        .btn.active {
+            background: #22c55e;
+            color: white;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+        }
+
+        .asset-group {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+            margin-top: 10px;
+        }
+
+        .asset-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: 0.2s;
+        }
+
+        .asset-card:hover {
+            border-color: var(--accent);
+        }
+
+        .asset-card img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            background: #475569;
+        }
+
+        .asset-card span {
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        /* --- Workspace --- */
+        #workspace-container {
+            flex: 1;
+            position: relative;
+            overflow: auto;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        #canvas {
+            position: absolute;
+            background: #1e293b;
+            min-width: 15000px;
+            min-height: 4000px;
+            top: 0;
+            left: 0;
+        }
+
+        #canvas.path-mode .road-block {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        #path-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .road-block {
+            position: absolute;
+            user-select: none;
+            cursor: grab;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+            pointer-events: auto;
+        }
+
+        .road-block.selected {
+            outline: 2px solid var(--accent);
+            outline-offset: 4px;
+            z-index: 10;
+        }
+
+        .connector {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        .start-point {
+            background: #22c55e;
+        }
+
+        .end-point {
+            background: #ef4444;
+        }
+
+        .mode-indicator {
+            position: fixed;
+            top: 20px;
+            left: 340px;
+            background: var(--sidebar-bg);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--accent);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot.block {
+            background: var(--accent);
+        }
+
+        .dot.path {
+            background: #22c55e;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        #export-panel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 700px;
+            background: var(--sidebar-bg);
+            border: 2px solid var(--accent);
+            border-radius: 20px;
+            padding: 25px;
+            z-index: 2000;
+            box-shadow: 0 0 100px rgba(0, 0, 0, 0.9);
+        }
+
+        #exportText {
+            width: 100%;
+            height: 350px;
+            background: #0f172a;
+            color: #22c55e;
+            font-family: monospace;
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid var(--border);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            cursor: pointer;
+            font-size: 24px;
+        }
+
+        .hint {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <h1>Road Aligner</h1>
+        <p class="subtitle">Visual Level Editor Alpha</p>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+            <button id="btnBlockMode" class="btn active" onclick="setMode('block')" style="flex:1">Blocks</button>
+            <button id="btnPathMode" class="btn secondary" onclick="setMode('path')" style="flex:1">Path</button>
+        </div>
+
+        <div id="blockControls">
+            <div class="asset-group" id="assetList"></div>
+        </div>
+
+        <div id="pathControls" style="display:none;">
+            <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 15px;">Drawing dots defines the physical
+                collision surface. Click exactly on the road top.</p>
+            <button class="btn secondary" style="width:100%; margin-bottom:10px" onclick="undoPath()">Undo Point
+                ↩️</button>
+            <button class="btn secondary" style="width:100%" onclick="clearPath()">Clear Path 🗑️</button>
+        </div>
+
+        <div
+            style="margin-top:auto; font-size: 0.8rem; color: #64748b; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+            <p style="margin:2px 0">• Green = Start point</p>
+            <p style="margin:2px 0">• Red = End point</p>
+            <p style="margin:2px 0">• Drag to move blocks</p>
+            <p style="margin:2px 0">• Delete key to remove</p>
+        </div>
+    </div>
+
+    <div id="workspace-container">
+        <div id="canvas">
+            <canvas id="path-canvas"></canvas>
+        </div>
+    </div>
+
+    <div class="mode-indicator" id="modeIndicator">
+        <div class="dot block"></div>
+        <span>Block Mode: Editing Layout</span>
+    </div>
+
+    <div class="hint">Scroll or Drag Empty Area to Pan</div>
+
+    <div id="controls">
+        <button class="btn secondary" onclick="clearAll()">Clear All</button>
+        <button class="btn" onclick="openExport()">Export Data 📋</button>
+    </div>
+
+    <div id="export-panel">
+        <span class="close-btn" onclick="closeExport()">&times;</span>
+        <h2>Export Level Configuration</h2>
+        <p style="font-size: 0.9rem; color: #94a3b8;">Copy this JSON and send it back to Antigravity.</p>
+        <textarea id="exportText" readonly></textarea>
+        <button class="btn" style="width:100%" onclick="copyExport()">Copy to Clipboard</button>
+    </div>
+
+    <script>
+        const ASSETS_BASE = '../senaro avurudu/';
+        const BLOCK_SCALE = 0.45;
+        const BLOCK_DEFS = {
+            flat: { asset: 'road/Flat Road.png', w: 1837, h: 234, sY: 68, eY: 68, label: 'Flat Road' },
+            up: { asset: 'road/Uphill Ramp.png', w: 1775, h: 379, sY: 185, eY: 80, label: 'Uphill Ramp' },
+            down: { asset: 'road/Downhill Ramp.png', w: 1778, h: 375, sY: 80, eY: 185, label: 'Downhill Ramp' },
+            bump: { asset: 'road/Rounded Bump.png', w: 1704, h: 309, sY: 153, eY: 153, label: 'Rounded Bump' }
+        };
+
+        const INITIAL_TRACK = [
+            { "type": "down", "x": 606, "y": 1732 },
+            { "type": "flat", "x": 1400, "y": 1800 },
+            { "type": "up", "x": 2170, "y": 1730 },
+            { "type": "bump", "x": 2936, "y": 1682 },
+            { "type": "down", "x": 3654, "y": 1728 },
+            { "type": "up", "x": 4366, "y": 1729 },
+            { "type": "flat", "x": 5123, "y": 1721 },
+            { "type": "up", "x": 5907, "y": 1650 },
+            { "type": "bump", "x": 6662, "y": 1603 },
+            { "type": "up", "x": 7364, "y": 1571 },
+            { "type": "flat", "x": 8116, "y": 1564 }
+        ];
+
+        const canvas = document.getElementById('canvas');
+        const workspace = document.getElementById('workspace-container');
+        const assetList = document.getElementById('assetList');
+        const pathCanvas = document.getElementById('path-canvas');
+        const pathCtx = pathCanvas.getContext('2d');
+
+        let placedBlocks = [];
+        let pathPoints = [];
+        let selectedBlock = null;
+        let draggingBlock = null;
+        let dragOffX = 0, dragOffY = 0;
+        let isPanning = false, panStartX, panStartY, scLeft, scTop;
+        let mode = 'block';
+
+        window.onload = () => {
+            console.log("Initializing Aligner...");
+            for (const [key, d] of Object.entries(BLOCK_DEFS)) {
+                const card = document.createElement('div');
+                card.className = 'asset-card';
+                card.draggable = true;
+                card.onclick = () => { if (mode === 'block') addBlock(key); };
+                card.ondragstart = (e) => { e.dataTransfer.setData('type', key); };
+                card.innerHTML = `<img src="${ASSETS_BASE + d.asset}" draggable="false"><span>${d.label}</span>`;
+                assetList.appendChild(card);
+            }
+
+            INITIAL_TRACK.forEach(b => addBlock(b.type, b.x, b.y));
+
+            pathCanvas.width = 15000;
+            pathCanvas.height = 4000;
+            drawPathLine();
+
+            workspace.scrollLeft = 0;
+            workspace.scrollTop = 1500;
+            console.log("Initialization Done.");
+        };
+
+        function setMode(m) {
+            mode = m;
+            document.getElementById('btnBlockMode').className = 'btn ' + (m === 'block' ? 'active' : 'secondary');
+            document.getElementById('btnPathMode').className = 'btn ' + (m === 'path' ? 'active' : 'secondary');
+            document.getElementById('blockControls').style.display = m === 'block' ? 'block' : 'none';
+            document.getElementById('pathControls').style.display = m === 'path' ? 'block' : 'none';
+
+            const ind = document.getElementById('modeIndicator');
+            ind.querySelector('.dot').className = 'dot ' + m;
+            ind.querySelector('span').innerText = m === 'block' ? 'Block Mode: Editing Layout' : 'Path Mode: Drawing Collision Line';
+
+            workspace.style.cursor = m === 'block' ? 'grab' : 'crosshair';
+            canvas.className = (m === 'path' ? 'path-mode' : '');
+            if (m === 'path') selectBlock(null);
+        }
+
+        workspace.ondragover = (e) => e.preventDefault();
+        workspace.ondrop = (e) => {
+            e.preventDefault();
+            if (mode !== 'block') return;
+            const type = e.dataTransfer.getData('type');
+            if (type) {
+                const r = canvas.getBoundingClientRect();
+                addBlock(type, (e.clientX - r.left), (e.clientY - r.top));
+            }
+        };
+
+        function addBlock(type, x, y) {
+            const def = BLOCK_DEFS[type];
+            if (x === undefined) {
+                if (placedBlocks.length > 0) {
+                    const last = placedBlocks[placedBlocks.length - 1];
+                    const lastEnd = last.getEndPoint();
+                    x = lastEnd.x; y = lastEnd.y - def.sY * BLOCK_SCALE;
+                } else { x = 400; y = 1800; }
+            }
+
+            const id = 'block_' + Date.now() + Math.random();
+            const el = document.createElement('div');
+            el.id = id; el.className = 'road-block';
+            el.style.width = (def.w * BLOCK_SCALE) + 'px';
+            el.style.height = (def.h * BLOCK_SCALE) + 'px';
+            el.style.left = x + 'px'; el.style.top = y + 'px';
+
+            el.innerHTML = `
+                <img src="${ASSETS_BASE + def.asset}" style="width:100%; height:100%" draggable="false">
+                <div class="connector start-point" style="left:0; top:${def.sY * BLOCK_SCALE}px"></div>
+                <div class="connector end-point" style="left:100%; top:${def.eY * BLOCK_SCALE}px"></div>
+            `;
+
+            canvas.appendChild(el);
+            const block = {
+                id, type, el, x, y,
+                getStartPoint: () => ({ x: block.x, y: block.y + def.sY * BLOCK_SCALE }),
+                getEndPoint: () => ({ x: block.x + def.w * BLOCK_SCALE, y: block.y + def.eY * BLOCK_SCALE })
+            };
+            placedBlocks.push(block);
+
+            el.onmousedown = (e) => {
+                if (mode !== 'block' || e.button !== 0) return;
+                draggingBlock = block; selectBlock(block);
+                dragOffX = e.clientX - block.x; dragOffY = e.clientY - block.y;
+                e.stopPropagation();
+            };
+            return block;
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            if (draggingBlock) {
+                draggingBlock.x = e.clientX - dragOffX; draggingBlock.y = e.clientY - dragOffY;
+                placedBlocks.forEach(other => {
+                    if (other.id === draggingBlock.id) return;
+                    const otherEnd = other.getEndPoint();
+                    const currentStartLoc = { x: draggingBlock.x, y: draggingBlock.y + BLOCK_DEFS[draggingBlock.type].sY * BLOCK_SCALE };
+                    if (Math.hypot(otherEnd.x - currentStartLoc.x, otherEnd.y - currentStartLoc.y) < 20) {
+                        draggingBlock.x = otherEnd.x; draggingBlock.y = otherEnd.y - BLOCK_DEFS[draggingBlock.type].sY * BLOCK_SCALE;
+                    }
+                });
+                draggingBlock.el.style.left = draggingBlock.x + 'px'; draggingBlock.el.style.top = draggingBlock.y + 'px';
+            } else if (isPanning) {
+                workspace.scrollLeft = scLeft - (e.clientX - panStartX);
+                workspace.scrollTop = scTop - (e.clientY - panStartY);
+            }
+        });
+
+        window.addEventListener('mouseup', () => { draggingBlock = null; isPanning = false; });
+
+        workspace.onmousedown = (e) => {
+            if (e.button === 0) {
+                if (mode === 'block') {
+                    if (e.target === workspace || e.target === canvas) {
+                        isPanning = true; panStartX = e.clientX; panStartY = e.clientY;
+                        scLeft = workspace.scrollLeft; scTop = workspace.scrollTop;
+                    }
+                } else {
+                    const r = canvas.getBoundingClientRect();
+                    pathPoints.push({ x: Math.round(e.clientX - r.left), y: Math.round(e.clientY - r.top) });
+                    pathPoints.sort((a, b) => a.x - b.x);
+                    drawPathLine();
+                }
+            }
+        };
+
+        function drawPathLine() {
+            pathCtx.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
+            if (pathPoints.length < 2) {
+                // Just draw the single dot if only one point
+                if (pathPoints.length === 1) {
+                    pathCtx.fillStyle = '#22c55e';
+                    pathCtx.beginPath();
+                    pathCtx.arc(pathPoints[0].x, pathPoints[0].y, 6, 0, Math.PI * 2);
+                    pathCtx.fill();
+                }
+                return;
+            }
+
+            // 1. Draw the continuous line
+            pathCtx.strokeStyle = '#22c55e';
+            pathCtx.lineWidth = 10;
+            pathCtx.lineCap = 'round';
+            pathCtx.lineJoin = 'round';
+            pathCtx.beginPath();
+            pathCtx.moveTo(pathPoints[0].x, pathPoints[0].y);
+            for (let i = 1; i < pathPoints.length; i++) {
+                pathCtx.lineTo(pathPoints[i].x, pathPoints[i].y);
+            }
+            pathCtx.stroke();
+
+            // 2. Overlay dots for each point for better precision
+            pathCtx.fillStyle = '#ffffff'; // White center for dots to make them stand out
+            pathPoints.forEach(p => {
+                pathCtx.beginPath();
+                pathCtx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                pathCtx.fill();
+            });
+        }
+        function undoPath() { pathPoints.pop(); drawPathLine(); }
+        function clearPath() { pathPoints = []; drawPathLine(); }
+        function selectBlock(b) { if (selectedBlock) selectedBlock.el.classList.remove('selected'); selectedBlock = b; if (b) b.el.classList.add('selected'); }
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.key === 'Delete' || e.key === 'Backspace') && selectedBlock && mode === 'block') {
+                selectedBlock.el.remove(); placedBlocks = placedBlocks.filter(b => b.id !== selectedBlock.id); selectedBlock = null;
+            }
+        });
+
+        function clearAll() { if (confirm('Clear all?')) { placedBlocks.forEach(b => b.el.remove()); placedBlocks = []; pathPoints = []; drawPathLine(); selectedBlock = null; } }
+        function openExport() {
+            const data = placedBlocks.sort((a, b) => a.x - b.x).map(b => ({ type: b.type, x: Math.round(b.x), y: Math.round(b.y) }));
+            document.getElementById('exportText').value = JSON.stringify({ TRACK_DATA: data, TRACK_POINTS: pathPoints }, null, 2);
+            document.getElementById('export-panel').style.display = 'block';
+        }
+        function closeExport() { document.getElementById('export-panel').style.display = 'none'; }
+        function copyExport() { document.getElementById('exportText').select(); document.execCommand('copy'); alert('Copied!'); }
+    </script>
+</body>
+
+</html>

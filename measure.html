@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <img id="flat" src="road/Flat Road.png">
+    <img id="up" src="road/Uphill Ramp.png">
+    <img id="down" src="road/Downhill Ramp.png">
+    <img id="bump" src="road/Rounded Bump.png">
+    <script>
+        window.onload = () => {
+            const imgs = ['flat', 'up', 'down', 'bump'];
+            const res = imgs.map(id => {
+                const el = document.getElementById(id);
+                return id + ': ' + el.naturalWidth + 'x' + el.naturalHeight;
+            });
+            const div = document.createElement('div');
+            div.id = 'results';
+            div.innerText = res.join(', ');
+            document.body.appendChild(div);
+        };
+    </script>
+</body>
+
+</html>
