@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>🛣 Road Designer – Senaro GN Ride</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0d0d20;
+            color: #eee;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            background: #16163a;
+            border-bottom: 2px solid #FFD700;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            font-size: 18px;
+            color: #FFD700;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-type {
+            background: #1e2a40;
+            color: #ccc;
+            border: 2px solid transparent;
+        }
+
+        .btn-type.active {
+            border-color: #FFD700;
+            color: #FFD700;
+        }
+
+        .btn-action {
+            background: #FF4500;
+            color: #fff;
+        }
+
+        .btn-export {
+            background: #00C853;
+            color: #fff;
+        }
+
+        .btn-clear {
+            background: #FF1744;
+            color: #fff;
+        }
+
+        .btn-undo {
+            background: #444;
+            color: #eee;
+        }
+
+        .canvas-wrap {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #canvas {
+            cursor: crosshair;
+            display: block;
+        }
+
+        #output {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        #output.show {
+            display: flex;
+        }
+
+        #output h2 {
+            color: #FFD700;
+            margin-bottom: 14px;
+        }
+
+        #output textarea {
+            width: 100%;
+            max-width: 800px;
+            height: 320px;
+            font-family: monospace;
+            font-size: 12px;
+            background: #111;
+            color: #4dffaa;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            resize: vertical;
+        }
+
+        #output .btns {
+            margin-top: 14px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .info-bar {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #aaa;
+            pointer-events: none;
+        }
+
+        .legend {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-right: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>🛣 Road Designer</h1>
+        <div class="controls">
+            <span style="font-size:13px;color:#aaa">Block:</span>
+            <button class="btn btn-type active" id="btnFlat" onclick="setType('flat',this)">▬ Flat</button>
+            <button class="btn btn-type" id="btnUp" onclick="setType('up',this)">⬆ Uphill</button>
+            <button class="btn btn-type" id="btnDown" onclick="setType('down',this)">⬇ Downhill</button>
+            <button class="btn btn-type" id="btnBump" onclick="setType('bump',this)">〜 Bump</button>
+        </div>
+        <div class="controls">
+            <span style="font-size:13px;color:#aaa">Snap Y:</span>
+            <button class="btn btn-type" onclick="snapY(-20)">▲ Up</button>
+            <button class="btn btn-type" onclick="snapY(20)">▼ Down</button>
+        </div>
+        <div class="controls">
+            <button class="btn btn-undo" onclick="undo()">↩ Undo</button>
+            <button class="btn btn-clear" onclick="clearAll()">🗑 Clear</button>
+            <button class="btn btn-export" onclick="doExport()">📤 Export JSON</button>
+        </div>
+        <div class="legend">
+            <span><span class="legend-dot" style="background:#4CAF50"></span>Flat</span>
+            <span><span class="legend-dot" style="background:#2196F3"></span>Up</span>
+            <span><span class="legend-dot" style="background:#FF9800"></span>Down</span>
+            <span><span class="legend-dot" style="background:#E91E63"></span>Bump</span>
+        </div>
+    </header>
+    <div class="canvas-wrap">
+        <canvas id="canvas"></canvas>
+        <div class="info-bar" id="infoBar">Click on canvas to place blocks. Scroll to zoom. Right-click to delete.</div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="output">
+        <h2>📤 Exported TRACK_DATA JSON</h2>
+        <p style="color:#aaa;margin-bottom:10px;font-size:13px">Paste this into game.js replacing the <code
+                style="color:#FFD700">TRACK_DATA</code> array.</p>
+        <textarea id="jsonOut" readonly></textarea>
+        <div class="btns">
+            <button class="btn btn-export" onclick="copyJSON()">📋 Copy</button>
+            <button class="btn btn-undo" onclick="closeExport()">✕ Close</button>
+        </div>
+    </div>
+
+    <script>
+        // ── State ──────────────────────────────────────────────────────
+        const BLOCK_W = 800; // pixels per block in world coords
+        const BLOCK_H = 170;
+        const COLORS = { flat: '#4CAF50', up: '#2196F3', down: '#FF9800', bump: '#E91E63' };
+        const LABELS = { flat: 'FLAT', up: 'UPHILL', down: 'DOWN', bump: 'BUMP' };
+
+        let blocks = []; // { type, worldX, worldY }
+        let history = []; // undo stack
+        let currentType = 'flat';
+        let cam = { x: 0, y: 0, zoom: 1 };
+        let isDragging = false;
+        let dragStart = null;
+        let mouseWorldPos = { x: 0, y: 0 };
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const infoBar = document.getElementById('infoBar');
+
+        // ── Global Y cursor for auto-stepping ─────────────────────────
+        let cursorY = 500; // default world Y for new blocks
+
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            render();
+        }
+
+        // ── Coordinates ───────────────────────────────────────────────
+        function toWorld(cx, cy) {
+            return {
+                x: (cx - canvas.width / 2) / cam.zoom + cam.x,
+                y: (cy - canvas.height / 2) / cam.zoom + cam.y
+            };
+        }
+        function toCanvas(wx, wy) {
+            return {
+                x: (wx - cam.x) * cam.zoom + canvas.width / 2,
+                y: (wy - cam.y) * cam.zoom + canvas.height / 2
+            };
+        }
+
+        // ── Block helpers ──────────────────────────────────────────────
+        function setType(type, btn) {
+            currentType = type;
+            document.querySelectorAll('.btn-type').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function snapY(delta) {
+            cursorY += delta;
+            render();
+        }
+
+        function nextX() {
+            if (blocks.length === 0) return 600;
+            return blocks[blocks.length - 1].worldX + BLOCK_W;
+        }
+
+        function placeBlock(worldX) {
+            // Snap X to block grid
+            const snappedX = Math.round(worldX / BLOCK_W) * BLOCK_W;
+            // Check for existing block at this X
+            const existing = blocks.findIndex(b => b.worldX === snappedX);
+            if (existing !== -1) return;
+            history.push(JSON.parse(JSON.stringify(blocks)));
+            blocks.push({ type: currentType, worldX: snappedX, worldY: cursorY });
+            blocks.sort((a, b) => a.worldX - b.worldX);
+            render();
+        }
+
+        function deleteBlock(wx) {
+            const snappedX = Math.round(wx / BLOCK_W) * BLOCK_W;
+            const idx = blocks.findIndex(b => Math.abs(b.worldX - snappedX) < BLOCK_W / 2);
+            if (idx !== -1) {
+                history.push(JSON.parse(JSON.stringify(blocks)));
+                blocks.splice(idx, 1);
+                render();
+            }
+        }
+
+        function undo() {
+            if (history.length > 0) {
+                blocks = history.pop();
+                render();
+            }
+        }
+
+        function clearAll() {
+            if (confirm('Are you sure you want to clear all blocks?')) {
+                history.push(JSON.parse(JSON.stringify(blocks)));
+                blocks = [];
+                render();
+            }
+        }
+
+        // ── Render ────────────────────────────────────────────────────
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Background
+            ctx.fillStyle = '#0a0d1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Grid
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            ctx.lineWidth = 1;
+            const gridSize = 200 * cam.zoom;
+            const startX = ((-cam.x * cam.zoom + canvas.width / 2) % gridSize + canvas.width) % gridSize - gridSize;
+            const startY = ((-cam.y * cam.zoom + canvas.height / 2) % gridSize + canvas.height) % gridSize - gridSize;
+            for (let gx = startX; gx < canvas.width; gx += gridSize) {
+                ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvas.height); ctx.stroke();
+            }
+            for (let gy = startY; gy < canvas.height; gy += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(canvas.width, gy); ctx.stroke();
+            }
+            ctx.restore();
+
+            // Horizon line (ground reference)
+            const groundY = toCanvas(0, cursorY).y;
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 100, 0, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([8, 8]);
+            ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = 'rgba(255,100,0,0.7)'; ctx.font = '12px monospace';
+            ctx.fillText(`Y=${cursorY} (Current Level)`, 10, groundY - 6);
+            ctx.restore();
+
+            // Draw blocks
+            blocks.forEach((b, i) => {
+                const cPos = toCanvas(b.worldX, b.worldY);
+                const w = BLOCK_W * cam.zoom;
+                const h = BLOCK_H * cam.zoom;
+
+                // Block body
+                ctx.save();
+                ctx.fillStyle = COLORS[b.type] + '33';
+                ctx.strokeStyle = COLORS[b.type];
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(cPos.x, cPos.y, w, h, 4);
+                ctx.fill();
+                ctx.stroke();
+
+                // Road surface line (top of block)
+                ctx.strokeStyle = COLORS[b.type];
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(cPos.x, cPos.y);
+                ctx.lineTo(cPos.x + w, cPos.y);
+                ctx.stroke();
+
+                // Label
+                if (cam.zoom > 0.4) {
+                    ctx.fillStyle = COLORS[b.type];
+                    ctx.font = `${Math.max(10, 13 * cam.zoom)}px monospace`;
+                    ctx.fillText(`#${i + 1} ${LABELS[b.type]}`, cPos.x + 8, cPos.y + 20 * cam.zoom);
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.font = `${Math.max(8, 11 * cam.zoom)}px monospace`;
+                    ctx.fillText(`x=${b.worldX} y=${b.worldY}`, cPos.x + 8, cPos.y + 36 * cam.zoom);
+                }
+                ctx.restore();
+            });
+
+            // Connect blocks with a surface path
+            if (blocks.length > 1) {
+                ctx.save();
+                ctx.strokeStyle = '#ffffff44';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                blocks.forEach((b, i) => {
+                    const c = toCanvas(b.worldX + BLOCK_W / 2, b.worldY);
+                    if (i === 0) ctx.moveTo(c.x, c.y);
+                    else ctx.lineTo(c.x, c.y);
+                });
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+            }
+
+            // "Preview" ghost at mouse
+            if (!isDragging) {
+                const snappedX = Math.round(mouseWorldPos.x / BLOCK_W) * BLOCK_W;
+                const cGhost = toCanvas(snappedX, cursorY);
+                const w = BLOCK_W * cam.zoom;
+                const h = BLOCK_H * cam.zoom;
+                ctx.save();
+                ctx.fillStyle = COLORS[currentType] + '22';
+                ctx.strokeStyle = COLORS[currentType] + '88';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 4]);
+                ctx.beginPath(); ctx.roundRect(cGhost.x, cGhost.y, w, h, 4); ctx.fill(); ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+            }
+
+            // Count
+            infoBar.textContent = `Blocks: ${blocks.length}  |  Zoom: ${cam.zoom.toFixed(2)}x  |  WorldX: ${Math.round(mouseWorldPos.x)}  |  CurrentType: ${currentType.toUpperCase()}  |  CursorY: ${cursorY}  |  Scroll=zoom, Drag=pan, Right-click=delete`;
+        }
+
+        // ── Input ────────────────────────────────────────────────────
+        canvas.addEventListener('mousedown', e => {
+            if (e.button === 2) {
+                const w = toWorld(e.offsetX, e.offsetY);
+                deleteBlock(w.x);
+                return;
+            }
+            isDragging = true;
+            dragStart = { mx: e.clientX, my: e.clientY, cx: cam.x, cy: cam.y };
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            mouseWorldPos = toWorld(e.offsetX, e.offsetY);
+            if (isDragging && dragStart) {
+                const dx = (e.clientX - dragStart.mx) / cam.zoom;
+                const dy = (e.clientY - dragStart.my) / cam.zoom;
+                cam.x = dragStart.cx - dx;
+                cam.y = dragStart.cy - dy;
+            }
+            render();
+        });
+
+        canvas.addEventListener('mouseup', e => {
+            if (isDragging && dragStart) {
+                const totalMove = Math.abs(e.clientX - dragStart.mx) + Math.abs(e.clientY - dragStart.my);
+                if (totalMove < 5) {
+                    // It was a click, not a drag
+                    const w = toWorld(e.offsetX, e.offsetY);
+                    placeBlock(w.x);
+                }
+            }
+            isDragging = false;
+            dragStart = null;
+        });
+
+        canvas.addEventListener('wheel', e => {
+            e.preventDefault();
+            const factor = e.deltaY < 0 ? 1.1 : 0.91;
+            const worldBefore = toWorld(e.offsetX, e.offsetY);
+            cam.zoom = Math.max(0.1, Math.min(4, cam.zoom * factor));
+            const worldAfter = toWorld(e.offsetX, e.offsetY);
+            cam.x -= (worldAfter.x - worldBefore.x);
+            cam.y -= (worldAfter.y - worldBefore.y);
+            render();
+        }, { passive: false });
+
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+        // ── Export ───────────────────────────────────────────────────
+        function doExport() {
+            if (blocks.length === 0) { alert('No blocks to export!'); return; }
+            const data = blocks.map(b => `  { "type": "${b.type}", "x": ${b.worldX}, "y": ${b.worldY} }`);
+            const json = `[\n${data.join(',\n')}\n]`;
+            document.getElementById('jsonOut').value = json;
+            document.getElementById('output').classList.add('show');
+        }
+
+        function copyJSON() {
+            const ta = document.getElementById('jsonOut');
+            ta.select();
+            document.execCommand('copy');
+            alert('✅ Copied! Paste into game.js as TRACK_DATA.');
+        }
+
+        function closeExport() {
+            document.getElementById('output').classList.remove('show');
+        }
+
+        // ── Init ──────────────────────────────────────────────────────
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Load existing TRACK_DATA as starting point
+        const initialBlocks = [
+            { type: "flat", worldX: 600, worldY: 500 },
+            { type: "up", worldX: 1400, worldY: 500 },
+            { type: "flat", worldX: 2200, worldY: 430 },
+            { type: "down", worldX: 3000, worldY: 430 },
+            { type: "flat", worldX: 3800, worldY: 500 },
+            { type: "bump", worldX: 4600, worldY: 500 },
+            { type: "flat", worldX: 5400, worldY: 500 },
+        ];
+        blocks = initialBlocks;
+        cam.zoom = 0.7;
+        cam.x = 3000;
+        render();
+    </script>
+</body>
+
+</html>

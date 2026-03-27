@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Road Master – Senaro GN Ride</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 220px;
+            min-width: 220px;
+            background: #1e293b;
+            border-right: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            padding: 14px;
+            gap: 8px;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        #sidebar h1 {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #fbbf24;
+            text-transform: uppercase;
+        }
+
+        #sidebar .sub {
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+
+        .mode-btns {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 8px 4px;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            background: #334155;
+            color: #94a3b8;
+            transition: 0.15s;
+        }
+
+        .btn.active {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn.accent {
+            background: #fbbf24;
+            color: #1e293b;
+        }
+
+        .btn.accent:hover {
+            background: #fcd34d;
+        }
+
+        .btn:hover:not(.active) {
+            background: #475569;
+            color: white;
+        }
+
+        .block-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 6px;
+            cursor: pointer;
+            transition: 0.15s;
+            text-align: center;
+        }
+
+        .block-card:hover {
+            border-color: #fbbf24;
+        }
+
+        .block-card.selected {
+            border-color: #22c55e;
+            background: #052e16;
+        }
+
+        .block-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .block-card span {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            display: block;
+            margin-top: 3px;
+        }
+
+        .section-title {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        .hint-box {
+            background: #0f172a;
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 0.65rem;
+            color: #475569;
+            margin-top: auto;
+            line-height: 1.6;
+        }
+
+        .hint-box b {
+            color: #64748b;
+        }
+
+        #canvas-wrap {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #0a1120;
+        }
+
+        #main-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        #status-bar {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid #334155;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            pointer-events: none;
+        }
+
+        #mode-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            pointer-events: none;
+        }
+
+        #mode-badge.block {
+            background: rgba(251, 191, 36, 0.2);
+            border: 1px solid #fbbf24;
+            color: #fbbf24;
+        }
+
+        #mode-badge.path {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid #22c55e;
+            color: #22c55e;
+        }
+
+        #export-panel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(700px, 90vw);
+            background: #1e293b;
+            border: 2px solid #fbbf24;
+            border-radius: 16px;
+            padding: 20px;
+            z-index: 100;
+            box-shadow: 0 0 80px rgba(0, 0, 0, 0.8);
+        }
+
+        #export-panel h2 {
+            color: #fbbf24;
+            margin-bottom: 10px;
+        }
+
+        #exportText {
+            width: 100%;
+            height: 320px;
+            background: #0f172a;
+            color: #4ade80;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            resize: none;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <h1>Road Master</h1>
+        <p class="sub">Senaro GN Ride — Track Editor</p>
+
+        <div class="mode-btns">
+            <button class="btn active" id="btnBlock" onclick="setMode('block')">Blocks</button>
+            <button class="btn" id="btnPath" onclick="setMode('path')">Path</button>
+        </div>
+
+        <div id="block-panel">
+            <p class="section-title">Road Blocks</p>
+            <div id="block-cards"></div>
+        </div>
+
+        <div id="path-panel" style="display:none;">
+            <p class="section-title">Path Tools</p>
+            <button class="btn" style="width:100%;margin-bottom:4px" onclick="undoPoint()">Undo Last Point ↩️</button>
+            <button class="btn" style="width:100%;margin-bottom:4px" onclick="smoothPath()">Smooth ✨</button>
+            <button class="btn" style="width:100%" onclick="clearPath()">Clear Path 🗑️</button>
+        </div>
+
+        <div style="margin-top:8px;">
+            <p class="section-title">History</p>
+            <div style="display:flex;gap:4px;margin-bottom:4px;">
+                <button class="btn" style="flex:1" onclick="undo()">Undo ↩</button>
+                <button class="btn" style="flex:1" onclick="redo()">Redo ↪</button>
+            </div>
+            <button class="btn" style="width:100%;margin-bottom:4px;background:#7f1d1d;color:#fca5a5;"
+                onclick="clearAll()">Clear All 🗑️</button>
+        </div>
+
+        <div style="margin-top:8px;">
+            <p class="section-title">View</p>
+            <button class="btn" style="width:100%;margin-bottom:4px" onclick="resetView()">Reset View</button>
+            <button class="btn accent" style="width:100%;" onclick="openExport()">Export JSON 💾</button>
+        </div>
+
+        <div class="hint-box">
+            <b>BLOCK MODE</b><br>
+            Click card → click canvas to place<br>
+            Drag block to move<br>
+            Dbl-click = free move<br>
+            Del = remove selected<br>
+            <br>
+            <b>PATH MODE</b><br>
+            Click canvas to add points<br>
+            ESC = finish / switch mode<br>
+            Del = remove last point<br>
+            <br>
+            <b>NAVIGATION</b><br>
+            Mouse Wheel = Zoom<br>
+            Middle-drag = Pan<br>
+            Right-drag = Pan<br>
+            Z = Reset View<br>
+            Ctrl+Z = Undo<br>
+            Ctrl+Y = Redo
+        </div>
+    </div>
+
+    <div id="canvas-wrap">
+        <canvas id="main-canvas"></canvas>
+        <div id="status-bar">Zoom: 100% | World: 0, 0</div>
+        <div id="mode-badge" class="block">● Block Mode</div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeExport()"></div>
+    <div id="export-panel">
+        <h2>Export Track Data</h2>
+        <p style="color:#64748b;font-size:0.8rem;margin-bottom:10px;">Copy this JSON and update <code>TRACK_DATA</code>
+            and <code>TRACK_POINTS</code> in <code>js/game.js</code></p>
+        <textarea id="exportText" readonly></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn accent" style="flex:1" onclick="copyExport()">Copy to Clipboard 📋</button>
+            <button class="btn" style="flex:1" onclick="closeExport()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        const ASSETS = 'assets/';
+        const SCALE = 0.5; // draw scale for 428px assets → ~214px wide
+
+        const BLOCK_DEFS = {
+            flat: { src: 'road/Flat Road.png', w: 428, h: 202, sY: 58, eY: 58 },
+            up: { src: 'road/Uphill Ramp.png', w: 418, h: 240, sY: 151, eY: 65 },
+            down: { src: 'road/Downhill Ramp.png', w: 418, h: 242, sY: 65, eY: 151 },
+            bump: { src: 'road/Rounded Bump.png', w: 358, h: 223, sY: 125, eY: 125 }
+        };
+
+        // Pre-load images
+        const IMG = {};
+        for (const [k, d] of Object.entries(BLOCK_DEFS)) {
+            IMG[k] = new Image();
+            IMG[k].src = ASSETS + d.src;
+            IMG[k].onload = () => render();
+        }
+
+        // ============================================================
+        // STATE
+        // ============================================================
+        let cam = { x: -100, y: -200, zoom: 0.5 }; // camera: world coords of top-left corner / zoom factor
+        let mode = 'block'; // 'block' | 'path'
+        let selectedBlockType = 'flat';
+        let blocks = []; // { type, x, y, unlocked }
+        let pathPoints = []; // { x, y } in world coordinates
+        let selectedBlock = null;
+        let dragging = null; // { block, offX, offY }
+        let panning = false;
+        let panStart = { mx: 0, my: 0, cx: 0, cy: 0 };
+        let mouseWorld = { x: 0, y: 0 };
+        let cachedSpline = [];
+        let splineDirty = true;
+
+        // Undo/Redo History
+        const MAX_HISTORY = 50;
+        let history = []; // stack of {blocks, pathPoints} snapshots
+        let historyIndex = -1;
+
+        function saveState() {
+            // Remove any future states beyond current index
+            history.splice(historyIndex + 1);
+            history.push({
+                blocks: JSON.parse(JSON.stringify(blocks)),
+                pathPoints: JSON.parse(JSON.stringify(pathPoints))
+            });
+            if (history.length > MAX_HISTORY) history.shift();
+            historyIndex = history.length - 1;
+        }
+
+        function undo() {
+            if (historyIndex <= 0) return;
+            historyIndex--;
+            const s = history[historyIndex];
+            blocks = JSON.parse(JSON.stringify(s.blocks));
+            pathPoints = JSON.parse(JSON.stringify(s.pathPoints));
+            selectedBlock = null; dragging = null; splineDirty = true;
+            render();
+        }
+
+        function redo() {
+            if (historyIndex >= history.length - 1) return;
+            historyIndex++;
+            const s = history[historyIndex];
+            blocks = JSON.parse(JSON.stringify(s.blocks));
+            pathPoints = JSON.parse(JSON.stringify(s.pathPoints));
+            selectedBlock = null; dragging = null; splineDirty = true;
+            render();
+        }
+
+        function clearAll() {
+            if (!confirm('Clear ALL blocks and path points?')) return;
+            saveState();
+            blocks = []; pathPoints = []; cachedSpline = [];
+            selectedBlock = null; splineDirty = true;
+            render();
+        }
+
+        // ============================================================
+        // CANVAS SETUP
+        // ============================================================
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            render();
+        }
+        window.addEventListener('resize', resize);
+
+        // ============================================================
+        // CAMERA UTILS
+        // ============================================================
+        // Convert screen coords → world coords
+        function toWorld(sx, sy) {
+            return {
+                x: sx / cam.zoom + cam.x,
+                y: sy / cam.zoom + cam.y
+            };
+        }
+
+        // Convert world coords → screen coords
+        function toScreen(wx, wy) {
+            return {
+                x: (wx - cam.x) * cam.zoom,
+                y: (wy - cam.y) * cam.zoom
+            };
+        }
+
+        // ============================================================
+        // BLOCK HELPERS
+        // ============================================================
+        function blockBW(b) { return BLOCK_DEFS[b.type].w * SCALE; }
+        function blockBH(b) { return BLOCK_DEFS[b.type].h * SCALE; }
+        function blockStartY(b) { return b.y + BLOCK_DEFS[b.type].sY * SCALE; }
+        function blockEndX(b) { return b.x + BLOCK_DEFS[b.type].w * SCALE; }
+        function blockEndY(b) { return b.y + BLOCK_DEFS[b.type].eY * SCALE; }
+
+        function hitTest(b, wx, wy) {
+            return wx >= b.x && wx <= b.x + blockBW(b) &&
+                wy >= b.y && wy <= b.y + blockBH(b);
+        }
+
+        // ============================================================
+        // RENDER
+        // ============================================================
+        function render() {
+            const W = canvas.width, H = canvas.height;
+            ctx.clearRect(0, 0, W, H);
+
+            ctx.save();
+            // Apply camera transform: world → screen
+            ctx.translate(-cam.x * cam.zoom, -cam.y * cam.zoom);
+            ctx.scale(cam.zoom, cam.zoom);
+
+            const vL = cam.x;
+            const vR = cam.x + W / cam.zoom;
+            const vT = cam.y;
+            const vB = cam.y + H / cam.zoom;
+
+            // ---- Grid ----
+            const gridStep = 1000;
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+            ctx.lineWidth = 1 / cam.zoom;
+            for (let gx = Math.floor(vL / gridStep) * gridStep; gx < vR; gx += gridStep) {
+                ctx.beginPath(); ctx.moveTo(gx, vT); ctx.lineTo(gx, vB); ctx.stroke();
+            }
+            for (let gy = Math.floor(vT / 100) * 100; gy < vB; gy += 100) {
+                ctx.beginPath(); ctx.moveTo(vL, gy); ctx.lineTo(vR, gy); ctx.stroke();
+            }
+
+            // ---- Baseline guide ----
+            const baseY = 600;
+            ctx.strokeStyle = 'rgba(100,116,139,0.5)';
+            ctx.lineWidth = 2 / cam.zoom;
+            ctx.setLineDash([8 / cam.zoom, 8 / cam.zoom]);
+            ctx.beginPath(); ctx.moveTo(vL, baseY); ctx.lineTo(vR, baseY); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = 'rgba(100,116,139,0.7)';
+            ctx.font = `${13 / cam.zoom}px Outfit`;
+            ctx.fillText('─── ROAD BASELINE ───', vL + 20 / cam.zoom, baseY - 6 / cam.zoom);
+
+            // ---- Distance Ruler ----
+            const tickStep = 1000; // 1km
+            ctx.font = `bold ${18 / cam.zoom}px Outfit`;
+            ctx.textAlign = 'center';
+            for (let x = Math.floor(vL / tickStep) * tickStep; x <= vR + tickStep; x += tickStep) {
+                const km = x / 1000;
+                if (km < 0 || km > 65) continue;
+                const major = km % 5 === 0;
+                ctx.strokeStyle = major ? '#fbbf24' : '#334155';
+                ctx.lineWidth = (major ? 3 : 1) / cam.zoom;
+                ctx.beginPath(); ctx.moveTo(x, vT); ctx.lineTo(x, vT + 60 / cam.zoom); ctx.stroke();
+
+                ctx.fillStyle = major ? '#fbbf24' : '#475569';
+                ctx.fillText(km + 'km', x, vT + 80 / cam.zoom);
+
+                // Start line
+                if (km === 0) {
+                    ctx.strokeStyle = 'rgba(34,197,94,0.7)'; ctx.lineWidth = 8 / cam.zoom;
+                    ctx.beginPath(); ctx.moveTo(x, vT); ctx.lineTo(x, vB); ctx.stroke();
+                    ctx.fillStyle = '#22c55e'; ctx.textAlign = 'left';
+                    ctx.fillText('🚀 START', x + 20 / cam.zoom, vT + 110 / cam.zoom);
+                    ctx.textAlign = 'center';
+                }
+                // Goal line
+                if (km === 20) {
+                    ctx.strokeStyle = 'rgba(239,68,68,0.7)'; ctx.lineWidth = 8 / cam.zoom;
+                    ctx.beginPath(); ctx.moveTo(x, vT); ctx.lineTo(x, vB); ctx.stroke();
+                    ctx.fillStyle = '#ef4444'; ctx.textAlign = 'left';
+                    ctx.fillText('🏁 GOAL 20km', x + 20 / cam.zoom, vT + 110 / cam.zoom);
+                    ctx.textAlign = 'center';
+                }
+            }
+
+            // ---- Road Blocks ----
+            for (const b of blocks) {
+                const bx = b.x, by = b.y;
+                const bw = blockBW(b), bh = blockBH(b);
+                // Cull off-screen
+                if (bx + bw < vL || bx > vR || by + bh < vT || by > vB) continue;
+
+                const img = IMG[b.type];
+                if (img.complete && img.naturalWidth > 0) {
+                    ctx.drawImage(img, bx, by, bw, bh);
+                } else {
+                    ctx.fillStyle = '#334155';
+                    ctx.fillRect(bx, by, bw, bh);
+                }
+
+                // Selection indicator
+                if (b === selectedBlock) {
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 3 / cam.zoom;
+                    ctx.setLineDash([6 / cam.zoom, 3 / cam.zoom]);
+                    ctx.strokeRect(bx, by, bw, bh);
+                    ctx.setLineDash([]);
+                }
+                // Unlocked indicator
+                if (b.unlocked) {
+                    ctx.strokeStyle = '#34d399';
+                    ctx.lineWidth = 2 / cam.zoom;
+                    ctx.setLineDash([4 / cam.zoom, 4 / cam.zoom]);
+                    ctx.strokeRect(bx - 2 / cam.zoom, by - 2 / cam.zoom, bw + 4 / cam.zoom, bh + 4 / cam.zoom);
+                    ctx.setLineDash([]);
+                }
+
+                // Connector dots
+                ctx.fillStyle = '#22c55e';
+                ctx.beginPath(); ctx.arc(bx, blockStartY(b), 5 / cam.zoom, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath(); ctx.arc(blockEndX(b), blockEndY(b), 5 / cam.zoom, 0, Math.PI * 2); ctx.fill();
+            }
+
+            // ---- Physics Path ----
+            if (pathPoints.length >= 2) {
+                if (splineDirty) { cachedSpline = catmullRom(pathPoints); splineDirty = false; }
+
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 3 / cam.zoom;
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(cachedSpline[0].x, cachedSpline[0].y);
+                for (let i = 1; i < cachedSpline.length; i++) {
+                    ctx.lineTo(cachedSpline[i].x, cachedSpline[i].y);
+                }
+                ctx.stroke();
+            }
+
+            // Path anchor dots
+            ctx.fillStyle = '#fff';
+            for (const p of pathPoints) {
+                ctx.beginPath(); ctx.arc(p.x, p.y, 4 / cam.zoom, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 1.5 / cam.zoom;
+                ctx.stroke();
+            }
+
+            // Real-time preview line (last point → mouse)
+            if (mode === 'path' && pathPoints.length > 0) {
+                const last = pathPoints[pathPoints.length - 1];
+                ctx.strokeStyle = 'rgba(34,197,94,0.5)';
+                ctx.lineWidth = 2 / cam.zoom;
+                ctx.setLineDash([8 / cam.zoom, 6 / cam.zoom]);
+                ctx.beginPath();
+                ctx.moveTo(last.x, last.y);
+                ctx.lineTo(mouseWorld.x, mouseWorld.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            ctx.restore();
+
+            // ---- Status Bar ----
+            document.getElementById('status-bar').textContent =
+                `Zoom: ${Math.round(cam.zoom * 100)}% | World: ${Math.round(mouseWorld.x)}, ${Math.round(mouseWorld.y)} | Blocks: ${blocks.length} | Path pts: ${pathPoints.length}`;
+        }
+
+        // ============================================================
+        // CATMULL-ROM SPLINE
+        // ============================================================
+        function catmullRom(pts, tension = 0.5, segs = 20) {
+            const out = [];
+            const p = [pts[0], ...pts, pts[pts.length - 1]];
+            for (let i = 1; i < p.length - 2; i++) {
+                for (let t = 0; t <= segs; t++) {
+                    const st = t / segs;
+                    const st2 = st * st, st3 = st2 * st;
+                    const c1 = 2 * st3 - 3 * st2 + 1, c2 = -2 * st3 + 3 * st2;
+                    const c3 = st3 - 2 * st2 + st, c4 = st3 - st2;
+                    const tx = (p[i + 1].x - p[i - 1].x) * tension, tx2 = (p[i + 2].x - p[i].x) * tension;
+                    const ty = (p[i + 1].y - p[i - 1].y) * tension, ty2 = (p[i + 2].y - p[i].y) * tension;
+                    out.push({
+                        x: c1 * p[i].x + c2 * p[i + 1].x + c3 * tx + c4 * tx2,
+                        y: c1 * p[i].y + c2 * p[i + 1].y + c3 * ty + c4 * ty2
+                    });
+                }
+            }
+            return out;
+        }
+
+        // ============================================================
+        // UI SETUP – Sidebar block cards
+        // ============================================================
+        const blockCardsEl = document.getElementById('block-cards');
+        for (const [key, d] of Object.entries(BLOCK_DEFS)) {
+            const card = document.createElement('div');
+            card.className = 'block-card' + (key === 'flat' ? ' selected' : '');
+            card.id = 'card-' + key;
+            card.innerHTML = `<img src="${ASSETS + d.src}"><span>${d.src.replace('road/', '').replace('.png', '')}</span>`;
+            card.onclick = () => {
+                selectedBlockType = key;
+                document.querySelectorAll('.block-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                if (mode !== 'block') setMode('block');
+            };
+            blockCardsEl.appendChild(card);
+        }
+
+        // ============================================================
+        // MODE
+        // ============================================================
+        function setMode(m) {
+            mode = m;
+            document.getElementById('btnBlock').className = 'btn' + (m === 'block' ? ' active' : '');
+            document.getElementById('btnPath').className = 'btn' + (m === 'path' ? ' active' : '');
+            document.getElementById('block-panel').style.display = m === 'block' ? 'block' : 'none';
+            document.getElementById('path-panel').style.display = m === 'path' ? 'block' : 'none';
+            const badge = document.getElementById('mode-badge');
+            badge.className = 'mode-badge ' + m;
+            badge.textContent = m === 'block' ? '● Block Mode' : '● Path Mode';
+            if (m === 'block') { selectedBlock = null; }
+            render();
+        }
+
+        // ============================================================
+        // BLOCK SNAP — snap start of moving block to end of nearest block
+        // ============================================================
+        function snapBlock(b) {
+            if (b.unlocked) return;
+            const bsY = blockStartY(b);
+            for (const other of blocks) {
+                if (other === b || other.unlocked) continue;
+                const ex = blockEndX(other), ey = blockEndY(other);
+                const dist = Math.hypot(b.x - ex, bsY - ey);
+                if (dist < 40) {
+                    b.x = ex;
+                    b.y = ey - BLOCK_DEFS[b.type].sY * SCALE;
+                    return;
+                }
+            }
+        }
+
+        // ============================================================
+        // CANVAS EVENTS
+        // ============================================================
+        function getCanvasXY(e) {
+            const r = canvas.getBoundingClientRect();
+            return { sx: e.clientX - r.left, sy: e.clientY - r.top };
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const { sx, sy } = getCanvasXY(e);
+            const w = toWorld(sx, sy);
+
+            if (e.button === 1) { // Middle mouse pan
+                e.preventDefault();
+                panning = true;
+                panStart = { mx: e.clientX, my: e.clientY, cx: cam.x, cy: cam.y };
+                return;
+            }
+
+            if (e.button === 2) { // Right-click pan
+                panning = true;
+                panStart = { mx: e.clientX, my: e.clientY, cx: cam.x, cy: cam.y };
+                e.preventDefault();
+                return;
+            }
+
+            if (e.button === 0) {
+                if (mode === 'block') {
+                    // Check if clicking on an existing block (pick to drag)
+                    let hit = null;
+                    for (let i = blocks.length - 1; i >= 0; i--) {
+                        if (hitTest(blocks[i], w.x, w.y)) { hit = blocks[i]; break; }
+                    }
+                    if (hit) {
+                        saveState();
+                        dragging = { block: hit, offX: w.x - hit.x, offY: w.y - hit.y };
+                        selectedBlock = hit;
+                    } else {
+                        // Place new block
+                        saveState();
+                        const def = BLOCK_DEFS[selectedBlockType];
+                        const newBlock = {
+                            type: selectedBlockType,
+                            x: w.x - def.w * SCALE / 2,
+                            y: w.y - def.sY * SCALE,
+                            unlocked: false
+                        };
+                        blocks.push(newBlock);
+                        snapBlock(newBlock);
+                        selectedBlock = newBlock;
+                    }
+                } else { // path mode
+                    saveState();
+                    pathPoints.push({ x: w.x, y: w.y });
+                    pathPoints.sort((a, b) => a.x - b.x);
+                    splineDirty = true;
+                }
+                render();
+            }
+        });
+
+        canvas.addEventListener('dblclick', (e) => {
+            if (mode !== 'block') return;
+            const { sx, sy } = getCanvasXY(e);
+            const w = toWorld(sx, sy);
+            for (let i = blocks.length - 1; i >= 0; i--) {
+                if (hitTest(blocks[i], w.x, w.y)) {
+                    blocks[i].unlocked = !blocks[i].unlocked;
+                    render();
+                    break;
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const { sx, sy } = getCanvasXY(e);
+            mouseWorld = toWorld(sx, sy);
+
+            if (panning) {
+                cam.x = panStart.cx - (e.clientX - panStart.mx) / cam.zoom;
+                cam.y = panStart.cy - (e.clientY - panStart.my) / cam.zoom;
+                render();
+                return;
+            }
+
+            if (dragging) {
+                dragging.block.x = mouseWorld.x - dragging.offX;
+                dragging.block.y = mouseWorld.y - dragging.offY;
+                snapBlock(dragging.block);
+                if (dragging.block.unlocked) {
+                    dragging.block.x = mouseWorld.x - dragging.offX;
+                    dragging.block.y = mouseWorld.y - dragging.offY;
+                }
+                render();
+                return;
+            }
+
+            if (mode === 'path') render(); // Realtime preview
+            else {
+                // Hover update for status bar
+                document.getElementById('status-bar').textContent =
+                    `Zoom: ${Math.round(cam.zoom * 100)}% | World: ${Math.round(mouseWorld.x)}, ${Math.round(mouseWorld.y)} | Blocks: ${blocks.length} | Path pts: ${pathPoints.length}`;
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (dragging) {
+                snapBlock(dragging.block);
+                dragging = null;
+                render();
+            }
+            panning = false;
+        });
+
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+        // Zoom with mouse wheel — zoom toward cursor position
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const { sx, sy } = getCanvasXY(e);
+            const wBefore = toWorld(sx, sy);
+
+            const factor = e.deltaY < 0 ? 1.1 : 0.9;
+            cam.zoom = Math.max(0.05, Math.min(5, cam.zoom * factor));
+
+            // Adjust cam so world point under cursor stays put
+            cam.x = wBefore.x - sx / cam.zoom;
+            cam.y = wBefore.y - sy / cam.zoom;
+
+            render();
+        }, { passive: false });
+
+        // ============================================================
+        // KEYBOARD SHORTCUTS
+        // ============================================================
+        window.addEventListener('keydown', (e) => {
+            if (document.getElementById('export-panel').style.display === 'block') return;
+
+            // Undo / Redo
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); return; }
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); return; }
+
+            if (e.key === 'Escape') { setMode('block'); }
+            if (e.key === 'Enter') { openExport(); }
+            if (e.key === 'z' || e.key === 'Z') { if (!e.ctrlKey && !e.metaKey) resetView(); }
+
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (mode === 'block' && selectedBlock) {
+                    saveState();
+                    blocks = blocks.filter(b => b !== selectedBlock);
+                    selectedBlock = null;
+                    render();
+                } else if (mode === 'path') {
+                    saveState();
+                    pathPoints.pop();
+                    splineDirty = true;
+                    render();
+                }
+            }
+            if (e.key === 's' || e.key === 'S') {
+                if (mode === 'path') smoothPath();
+            }
+        });
+
+        // ============================================================
+        // PATH TOOLS
+        // ============================================================
+        function undoPoint() { saveState(); pathPoints.pop(); splineDirty = true; render(); }
+        function clearPath() {
+            if (confirm('Clear all path points?')) {
+                saveState();
+                pathPoints = []; cachedSpline = []; splineDirty = true; render();
+            }
+        }
+        function smoothPath() {
+            if (pathPoints.length < 3) return;
+            saveState();
+            const n = [pathPoints[0]];
+            for (let i = 1; i < pathPoints.length - 1; i++) {
+                n.push({ x: pathPoints[i].x, y: (pathPoints[i - 1].y + pathPoints[i].y + pathPoints[i + 1].y) / 3 });
+            }
+            n.push(pathPoints[pathPoints.length - 1]);
+            pathPoints = n; splineDirty = true; render();
+        }
+
+        // ============================================================
+        // VIEW
+        // ============================================================
+        function resetView() {
+            cam = { x: -100, y: 0, zoom: 0.5 };
+            render();
+        }
+
+        // ============================================================
+        // EXPORT
+        // ============================================================
+        function openExport() {
+            const data = {
+                TRACK_DATA: blocks.sort((a, b) => a.x - b.x).map(b => ({ type: b.type, x: Math.round(b.x), y: Math.round(b.y) })),
+                TRACK_POINTS: pathPoints.map(p => ({ x: Math.round(p.x), y: Math.round(p.y) }))
+            };
+            document.getElementById('exportText').value = JSON.stringify(data, null, 2);
+            document.getElementById('export-panel').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+        function closeExport() {
+            document.getElementById('export-panel').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+        function copyExport() {
+            document.getElementById('exportText').select();
+            document.execCommand('copy');
+            alert('Copied to clipboard!');
+        }
+
+        // ============================================================
+        // INITIAL BLOCKS (Existing track data)
+        // ============================================================
+        const INITIAL_BLOCKS = [
+            { "type": "flat", "x": 8116, "y": 564 }, { "type": "up", "x": 8940, "y": 500 }, { "type": "bump", "x": 9700, "y": 450 },
+            { "type": "down", "x": 10450, "y": 520 }, { "type": "flat", "x": 11200, "y": 580 }, { "type": "up", "x": 12000, "y": 510 },
+            { "type": "up", "x": 12800, "y": 440 }, { "type": "flat", "x": 13600, "y": 440 }, { "type": "down", "x": 14400, "y": 510 },
+            { "type": "bump", "x": 15200, "y": 480 }, { "type": "flat", "x": 16000, "y": 480 }, { "type": "up", "x": 16800, "y": 410 },
+            { "type": "down", "x": 17600, "y": 480 }, { "type": "flat", "x": 18400, "y": 480 }, { "type": "bump", "x": 19200, "y": 430 },
+            { "type": "up", "x": 20000, "y": 380 }, { "type": "down", "x": 20800, "y": 450 }, { "type": "flat", "x": 21600, "y": 450 }
+        ];
+        blocks = INITIAL_BLOCKS.map(b => ({ ...b, unlocked: false }));
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        resize();
+        // Scroll to road start
+        cam.x = 7800; cam.y = 100; cam.zoom = 0.35;
+        render();
+    </script>
+</body>
+
+</html>

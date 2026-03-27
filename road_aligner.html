@@ -138,7 +138,7 @@
         #canvas {
             position: absolute;
             background: #1e293b;
-            min-width: 15000px;
+            min-width: 55000px;
             min-height: 4000px;
             top: 0;
             left: 0;
@@ -334,7 +334,7 @@
     </div>
 
     <script>
-        const ASSETS_BASE = '../senaro avurudu/';
+        const ASSETS_BASE = 'assets/';
         const BLOCK_SCALE = 0.45;
         const BLOCK_DEFS = {
             flat: { asset: 'road/Flat Road.png', w: 1837, h: 234, sY: 68, eY: 68, label: 'Flat Road' },
@@ -344,17 +344,61 @@
         };
 
         const INITIAL_TRACK = [
-            { "type": "down", "x": 606, "y": 1732 },
-            { "type": "flat", "x": 1400, "y": 1800 },
-            { "type": "up", "x": 2170, "y": 1730 },
-            { "type": "bump", "x": 2936, "y": 1682 },
-            { "type": "down", "x": 3654, "y": 1728 },
-            { "type": "up", "x": 4366, "y": 1729 },
-            { "type": "flat", "x": 5123, "y": 1721 },
-            { "type": "up", "x": 5907, "y": 1650 },
-            { "type": "bump", "x": 6662, "y": 1603 },
-            { "type": "up", "x": 7364, "y": 1571 },
-            { "type": "flat", "x": 8116, "y": 1564 }
+            { "type": "flat", "x": 8116, "y": 564 },
+            { "type": "up", "x": 8940, "y": 500 },
+            { "type": "bump", "x": 9700, "y": 450 },
+            { "type": "down", "x": 10450, "y": 520 },
+            { "type": "flat", "x": 11200, "y": 580 },
+            { "type": "up", "x": 12000, "y": 510 },
+            { "type": "up", "x": 12800, "y": 440 },
+            { "type": "flat", "x": 13600, "y": 440 },
+            { "type": "down", "x": 14400, "y": 510 },
+            { "type": "bump", "x": 15200, "y": 480 },
+            { "type": "flat", "x": 16000, "y": 480 },
+            { "type": "up", "x": 16800, "y": 410 },
+            { "type": "down", "x": 17600, "y": 480 },
+            { "type": "flat", "x": 18400, "y": 480 },
+            { "type": "bump", "x": 19200, "y": 430 },
+            { "type": "up", "x": 20000, "y": 380 },
+            { "type": "down", "x": 20800, "y": 450 },
+            { "type": "flat", "x": 21600, "y": 450 },
+            { "type": "up", "x": 22400, "y": 380 },
+            { "type": "bump", "x": 23200, "y": 330 },
+            { "type": "down", "x": 24000, "y": 400 },
+            { "type": "flat", "x": 24800, "y": 400 },
+            { "type": "up", "x": 25600, "y": 330 },
+            { "type": "up", "x": 26400, "y": 260 },
+            { "type": "flat", "x": 27200, "y": 260 },
+            { "type": "down", "x": 28000, "y": 330 },
+            { "type": "bump", "x": 28800, "y": 300 },
+            { "type": "flat", "x": 29600, "y": 300 },
+            { "type": "up", "x": 30400, "y": 230 },
+            { "type": "down", "x": 31200, "y": 300 },
+            { "type": "flat", "x": 32000, "y": 300 },
+            { "type": "bump", "x": 32800, "y": 250 },
+            { "type": "up", "x": 33600, "y": 200 },
+            { "type": "down", "x": 34400, "y": 270 },
+            { "type": "flat", "x": 35200, "y": 270 },
+            { "type": "up", "x": 36000, "y": 200 },
+            { "type": "bump", "x": 36800, "y": 150 },
+            { "type": "down", "x": 37600, "y": 220 },
+            { "type": "flat", "x": 38400, "y": 220 },
+            { "type": "up", "x": 39200, "y": 150 },
+            { "type": "up", "x": 40000, "y": 80 },
+            { "type": "flat", "x": 40800, "y": 80 },
+            { "type": "down", "x": 41600, "y": 150 },
+            { "type": "bump", "x": 42400, "y": 120 },
+            { "type": "flat", "x": 43200, "y": 120 },
+            { "type": "up", "x": 44000, "y": 50 },
+            { "type": "down", "x": 44800, "y": 120 },
+            { "type": "flat", "x": 45600, "y": 120 },
+            { "type": "bump", "x": 46400, "y": 70 },
+            { "type": "up", "x": 47200, "y": 20 },
+            { "type": "down", "x": 48000, "y": 90 },
+            { "type": "flat", "x": 48800, "y": 90 },
+            { "type": "flat", "x": 49600, "y": 90 },
+            { "type": "flat", "x": 50400, "y": 90 },
+            { "type": "flat", "x": 51200, "y": 90 }
         ];
 
         const canvas = document.getElementById('canvas');
@@ -364,7 +408,30 @@
         const pathCtx = pathCanvas.getContext('2d');
 
         let placedBlocks = [];
-        let pathPoints = [];
+        let pathPoints = [
+            { "x": 609, "y": 765 }, { "x": 739, "y": 764 }, { "x": 848, "y": 768 }, { "x": 938, "y": 783 },
+            { "x": 1011, "y": 803 }, { "x": 1084, "y": 820 }, { "x": 1201, "y": 838 }, { "x": 1315, "y": 841 },
+            { "x": 1414, "y": 839 }, { "x": 1414, "y": 838 }, { "x": 1637, "y": 839 }, { "x": 1861, "y": 840 },
+            { "x": 1861, "y": 840 }, { "x": 2169, "y": 840 }, { "x": 2299, "y": 839 }, { "x": 2394, "y": 833 },
+            { "x": 2477, "y": 820 }, { "x": 2478, "y": 821 }, { "x": 2572, "y": 795 }, { "x": 2663, "y": 774 },
+            { "x": 2763, "y": 762 }, { "x": 2879, "y": 762 }, { "x": 2947, "y": 762 }, { "x": 3027, "y": 758 },
+            { "x": 3111, "y": 741 }, { "x": 3200, "y": 710 }, { "x": 3253, "y": 696 }, { "x": 3325, "y": 689 },
+            { "x": 3386, "y": 702 }, { "x": 3442, "y": 722 }, { "x": 3544, "y": 753 }, { "x": 3618, "y": 762 },
+            { "x": 3705, "y": 764 }, { "x": 3800, "y": 764 }, { "x": 3886, "y": 765 }, { "x": 3968, "y": 779 },
+            { "x": 4042, "y": 797 }, { "x": 4102, "y": 811 }, { "x": 4104, "y": 811 }, { "x": 4209, "y": 832 },
+            { "x": 4304, "y": 839 }, { "x": 4378, "y": 840 }, { "x": 4476, "y": 841 }, { "x": 4576, "y": 835 },
+            { "x": 4648, "y": 826 }, { "x": 4739, "y": 803 }, { "x": 4811, "y": 784 }, { "x": 4880, "y": 768 },
+            { "x": 4938, "y": 764 }, { "x": 5006, "y": 762 }, { "x": 5044, "y": 760 }, { "x": 5180, "y": 763 },
+            { "x": 5408, "y": 762 }, { "x": 5653, "y": 761 }, { "x": 5861, "y": 762 }, { "x": 5942, "y": 761 },
+            { "x": 6072, "y": 759 }, { "x": 6188, "y": 746 }, { "x": 6268, "y": 727 }, { "x": 6373, "y": 699 },
+            { "x": 6444, "y": 687 }, { "x": 6522, "y": 683 }, { "x": 6592, "y": 682 }, { "x": 6667, "y": 684 },
+            { "x": 6771, "y": 680 }, { "x": 6850, "y": 660 }, { "x": 6944, "y": 626 }, { "x": 7031, "y": 609 },
+            { "x": 7090, "y": 616 }, { "x": 7157, "y": 637 }, { "x": 7235, "y": 664 }, { "x": 7285, "y": 676 },
+            { "x": 7334, "y": 682 }, { "x": 7384, "y": 684 }, { "x": 7463, "y": 684 }, { "x": 7539, "y": 680 },
+            { "x": 7634, "y": 675 }, { "x": 7726, "y": 656 }, { "x": 7810, "y": 634 }, { "x": 7882, "y": 616 },
+            { "x": 7945, "y": 606 }, { "x": 8050, "y": 603 }, { "x": 8128, "y": 604 }, { "x": 8281, "y": 604 },
+            { "x": 8458, "y": 602 }, { "x": 8722, "y": 602 }, { "x": 8857, "y": 604 }, { "x": 8934, "y": 602 }
+        ];
         let selectedBlock = null;
         let draggingBlock = null;
         let dragOffX = 0, dragOffY = 0;
@@ -385,7 +452,7 @@
 
             INITIAL_TRACK.forEach(b => addBlock(b.type, b.x, b.y));
 
-            pathCanvas.width = 15000;
+            pathCanvas.width = 55000;
             pathCanvas.height = 4000;
             drawPathLine();
 
@@ -523,12 +590,45 @@
             pathCtx.stroke();
 
             // 2. Overlay dots for each point for better precision
-            pathCtx.fillStyle = '#ffffff'; // White center for dots to make them stand out
+            pathCtx.fillStyle = '#ffffff';
             pathPoints.forEach(p => {
                 pathCtx.beginPath();
                 pathCtx.arc(p.x, p.y, 4, 0, Math.PI * 2);
                 pathCtx.fill();
             });
+
+            // 3. Draw distance markers (Ruler)
+            pathCtx.font = 'bold 24px Outfit';
+            pathCtx.textAlign = 'center';
+            for (let x = 0; x <= 52000; x += 1000) {
+                const km = x / 1000;
+                const isMilestone = (km % 5 === 0);
+
+                pathCtx.strokeStyle = isMilestone ? '#fbbf24' : '#475569';
+                pathCtx.lineWidth = isMilestone ? 4 : 2;
+
+                pathCtx.beginPath();
+                pathCtx.moveTo(x, 0);
+                pathCtx.lineTo(x, 100);
+                pathCtx.stroke();
+
+                if (isMilestone || km % 1 === 0) {
+                    pathCtx.fillStyle = isMilestone ? '#fbbf24' : '#94a3b8';
+                    pathCtx.fillText(km + ' km', x, 130);
+                }
+
+                // Highlight 20km Goal
+                if (km === 20) {
+                    pathCtx.fillStyle = '#ef4444';
+                    pathCtx.fillText('🏁 GOAL (20km)', x, 160);
+                    pathCtx.strokeStyle = '#ef4444';
+                    pathCtx.lineWidth = 6;
+                    pathCtx.beginPath();
+                    pathCtx.moveTo(x, 0);
+                    pathCtx.lineTo(x, 4000);
+                    pathCtx.stroke();
+                }
+            }
         }
         function undoPath() { pathPoints.pop(); drawPathLine(); }
         function clearPath() { pathPoints = []; drawPathLine(); }
