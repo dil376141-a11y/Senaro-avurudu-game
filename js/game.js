@@ -1001,7 +1001,7 @@ class MenuScene {
     ctx.globalAlpha = 0.08;
     ctx.strokeStyle = '#c2440e';
     ctx.lineWidth = 1.2;
-    const cx = vW / 2, cy = vH / 2;
+    const cx = 720 / 2, cy = 1280 / 2; // Fixed centers for mandala inside internal 720x1280 space
     for (let i = 0; i < 12; i++) {
       ctx.beginPath(); ctx.arc(cx, cy, 100 + i * 100, 0, Math.PI * 2); ctx.stroke();
     }
@@ -1268,19 +1268,38 @@ class Game {
     });
   }
   _resize() {
+    const dpr = window.devicePixelRatio || 1;
     const ww = window.innerWidth, wh = window.innerHeight;
-    this.canvas.width = ww;
-    this.canvas.height = wh;
 
-    // Zoom in on portrait (narrow screens)
-    if (ww < wh) {
-      this.scale = ww / 650;
-    } else {
-      this.scale = ww / 1280;
-      if (this.scale > wh / 720) this.scale = wh / 720;
-    }
+    // Set display size
+    this.canvas.style.width = ww + 'px';
+    this.canvas.style.height = wh + 'px';
+
+    // Set actual resolution
+    this.canvas.width = ww * dpr;
+    this.canvas.height = wh * dpr;
+    this.ctx.scale(dpr, dpr);
+
+    // Calculate internal scaling to fit 720x1280 view
+    const scaleW = ww / 720;
+    const scaleH = wh / 1280;
+    this.scale = Math.min(scaleW, scaleH);
+
+    // Optional: Add a slight zoom for gameplay if it's too small, but keep Menu tight
+    if (this.scene === 'game') this.scale *= 1.35;
   }
-  _tw(ex, ey) { const r = this.canvas.getBoundingClientRect(); return { x: (ex - r.left) / this.scale, y: (ey - r.top) / this.scale }; }
+  _tw(ex, ey) {
+    const r = this.canvas.getBoundingClientRect();
+    let x = (ex - r.left) / this.scale;
+    let y = (ey - r.top) / this.scale;
+    if (this.scene === 'menu') {
+      const offsetX = (window.innerWidth - (720 * this.scale)) / 2 / this.scale;
+      const offsetY = (window.innerHeight - (1280 * this.scale)) / 2 / this.scale;
+      x -= offsetX;
+      y -= offsetY;
+    }
+    return { x, y };
+  }
   _click(e) {
     const p = this._tw(e.clientX, e.clientY);
     if (this.scene === 'menu') this.menuScene.click(p.x, p.y);
@@ -1333,11 +1352,20 @@ class Game {
   _loop() {
     requestAnimationFrame(() => this._loop());
     const ctx = this.ctx;
-    const vW = this.canvas.width / this.scale;
-    const vH = this.canvas.height / this.scale;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
-    this.scale = (this.canvas.width / 720) * 1.4; // 1.4x baseline zoom for mobile
-    ctx.save(); ctx.scale(this.scale, this.scale);
+    const vW = this.canvas.width / (this.scale * (window.devicePixelRatio || 1));
+    const vH = this.canvas.height / (this.scale * (window.devicePixelRatio || 1));
+
+    ctx.save();
+    // Center the content if the screen is wider/taller than 720x1280
+    const offsetX = (window.innerWidth - (720 * this.scale)) / 2 / this.scale;
+    const offsetY = (window.innerHeight - (1280 * this.scale)) / 2 / this.scale;
+
+    ctx.scale(this.scale, this.scale);
+    if (this.scene === 'menu') ctx.translate(offsetX, offsetY);
+
     if (this.scene === 'loading') {
       this.loadScene.draw(ctx, this.am.progress, vW, vH);
     } else if (this.scene === 'menu') {
